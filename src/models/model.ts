@@ -2,13 +2,17 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IRFP extends Document {
+  rfpId: string; // RFP-20231026-ABCD format
   title: string;
   description: string;
   budget?: number;
   deliveryTimeline?: string;
-  items: Array<{ name: string; qty: number; specs?: string }>;
+  items: Array<{ name: string; qty: number; spec?: string }>;
   paymentTerms?: string;
   warranty?: string;
+  sentTo: Array<{ email: string; name: string }>;
+  status: "pending" | "awarded" | "closed";
+  awardedTo?: { email: string; name: string };
   createdAt: Date;
   awardedVendorId?: mongoose.Types.ObjectId | null;
 }
@@ -16,19 +20,36 @@ export interface IRFP extends Document {
 const ItemSchema = new Schema({
   name: String,
   qty: Number,
-  specs: String,
+  spec: String,
+});
+
+const RecipientSchema = new Schema({
+  email: { type: String, required: true },
+  name: { type: String, required: true },
 });
 
 const RFPSchema = new Schema<IRFP>({
+  rfpId: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  description: { type: String, required: true },
+  description: String,
   budget: Number,
   deliveryTimeline: String,
   items: [ItemSchema],
   paymentTerms: String,
   warranty: String,
-  awardedVendorId: { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
+  sentTo: [RecipientSchema],
+  status: {
+    type: String,
+    enum: ["pending", "awarded", "closed"],
+    default: "pending",
+  },
+  awardedTo: RecipientSchema,
   createdAt: { type: Date, default: Date.now },
+  awardedVendorId: {
+    type: Schema.Types.ObjectId,
+    ref: "Vendor",
+    default: null,
+  },
 });
 
 export const RFP = mongoose.model<IRFP>("RFP", RFPSchema);
